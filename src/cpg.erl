@@ -140,7 +140,7 @@
          remove_leave_callback/3]).
 
 %% gen_server callbacks
--export([init/1, handle_call/3, handle_cast/2, handle_info/2, 
+-export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          code_change/3, terminate/2]).
 
 -include("cpg_constants.hrl").
@@ -3175,7 +3175,7 @@ leave_group(GroupName, Pid, Reason,
                    pids = Pids,
                    callbacks = Callbacks} = State) ->
     Fselect = fun(#cpg_data_pid{pid = P, monitor = Ref}) ->
-        if 
+        if
             P == Pid ->
                 true = erlang:demonitor(Ref, [flush]),
                 true;
@@ -3249,7 +3249,7 @@ leave_group_completely(GroupName, Pid, Reason,
                               pids = Pids,
                               callbacks = Callbacks} = State) ->
     Fpartition = fun(#cpg_data_pid{pid = P, monitor = Ref}) ->
-        if 
+        if
             P == Pid ->
                 true = erlang:demonitor(Ref, [flush]),
                 true;
@@ -3349,7 +3349,7 @@ store_conflict_f([Pid | V1AllPids],
                  #state{callbacks = Callbacks} = State) ->
     % for each external Pid, check the internal Pids within the same group
     Fpartition = fun(#cpg_data_pid{pid = P}) ->
-        if 
+        if
             P == Pid ->
                 true;
             true ->
@@ -3550,4 +3550,3 @@ select([H | T], Output, F) ->
 
 random(N) ->
     quickrand:uniform(N).
-
