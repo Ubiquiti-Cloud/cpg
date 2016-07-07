@@ -3116,10 +3116,10 @@ delete_group(GroupName,
                 true = erlang:demonitor(Ref, [flush]),
                 cpg_callbacks:notify_leave(Callbacks, GroupName, Pid,
                                            leave_local),
-                dict:update(Pid,
-                            fun(OldValue) ->
-                                lists:delete(GroupName, OldValue)
-                            end, P)
+                clear_pid_mapping(Pid, dict:update(Pid,
+                                                   fun(OldValue) ->
+                                                           lists:delete(GroupName, OldValue)
+                                                   end, P))
             end, Pids, Local ++ Remote),
             NewGroupsData = DictI:erase(GroupName, GroupsData),
             State#state{groups = {DictI, NewGroupsData},
@@ -3242,7 +3242,7 @@ leave_group(GroupName, Pid, Reason,
             {NextGroupsData, Pids}
     end,
     State#state{groups = {DictI, NewGroupsData},
-                pids = NewPids}.
+                pids = clear_pid_mapping(Pid, NewPids)}.
 
 leave_group_completely(GroupName, Pid, Reason,
                        #state{groups = {DictI, GroupsData},
@@ -3304,7 +3304,7 @@ leave_group_completely(GroupName, Pid, Reason,
             NextGroupsData
     end,
     State#state{groups = {DictI, NewGroupsData},
-                pids = NewPids}.
+                pids = clear_pid_mapping(Pid, NewPids)}.
 
 store_conflict_add_entries(0, Entries, _) ->
     Entries;
@@ -3501,6 +3501,14 @@ member_died(Pid, Reason, #state{pids = Pids} = State) ->
                 leave_group_completely(GroupName, Pid, Reason, S)
             end, State, GroupNames),
             NewState#state{pids = dict:erase(Pid, NewPids)}
+    end.
+
+clear_pid_mapping(Pid, PidM) ->
+    case dict:fetch(Pid, PidM) of
+        [] ->
+            dict:erase(Pid, PidM);
+        Pids when is_list(Pids) ->
+            PidM
     end.
 
 whereis_name_random(1, [Pid]) ->

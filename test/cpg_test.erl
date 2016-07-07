@@ -227,6 +227,17 @@ pid_age_2_test() ->
     ok = kill_pids([Pid1, Pid2, Pid3]),
     ok.
 
+join_leaves_remove_stale_reverse_mappings_test() ->
+    StartStateSize = byte_size(term_to_binary(sys:get_state(cpg_default_scope))),
+    Pid1 = erlang:spawn(fun busy_pid/0),
+    [begin
+         ok = cpg:join("GroupA", Pid1),
+         1 = cpg:join_count("GroupA", Pid1),
+         cpg:leave("GroupA", Pid1),
+         AfterLeaveSize = byte_size(term_to_binary(sys:get_state(cpg_default_scope))),
+         StartStateSize = AfterLeaveSize
+     end || _ <- lists:seq(1,100)].
+
 callbacks_test() ->
     F = fun(F1, L) ->
         receive
