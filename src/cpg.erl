@@ -140,7 +140,7 @@
          remove_leave_callback/3]).
 
 %% gen_server callbacks
--export([init/1, handle_call/3, handle_cast/2, handle_info/2, 
+-export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          code_change/3, terminate/2]).
 
 -include("cpg_constants.hrl").
@@ -3116,10 +3116,10 @@ delete_group(GroupName,
                 true = erlang:demonitor(Ref, [flush]),
                 cpg_callbacks:notify_leave(Callbacks, GroupName, Pid,
                                            leave_local),
-                dict:update(Pid,
-                            fun(OldValue) ->
-                                lists:delete(GroupName, OldValue)
-                            end, P)
+                clear_pid_mapping(Pid, dict:update(Pid,
+                                                   fun(OldValue) ->
+                                                           lists:delete(GroupName, OldValue)
+                                                   end, P))
             end, Pids, Local ++ Remote),
             NewGroupsData = DictI:erase(GroupName, GroupsData),
             State#state{groups = {DictI, NewGroupsData},
@@ -3175,7 +3175,7 @@ leave_group(GroupName, Pid, Reason,
                    pids = Pids,
                    callbacks = Callbacks} = State) ->
     Fselect = fun(#cpg_data_pid{pid = P, monitor = Ref}) ->
-        if 
+        if
             P == Pid ->
                 true = erlang:demonitor(Ref, [flush]),
                 true;
@@ -3242,14 +3242,14 @@ leave_group(GroupName, Pid, Reason,
             {NextGroupsData, Pids}
     end,
     State#state{groups = {DictI, NewGroupsData},
-                pids = NewPids}.
+                pids = clear_pid_mapping(Pid, NewPids)}.
 
 leave_group_completely(GroupName, Pid, Reason,
                        #state{groups = {DictI, GroupsData},
                               pids = Pids,
                               callbacks = Callbacks} = State) ->
     Fpartition = fun(#cpg_data_pid{pid = P, monitor = Ref}) ->
-        if 
+        if
             P == Pid ->
                 true = erlang:demonitor(Ref, [flush]),
                 true;
@@ -3304,7 +3304,7 @@ leave_group_completely(GroupName, Pid, Reason,
             NextGroupsData
     end,
     State#state{groups = {DictI, NewGroupsData},
-                pids = NewPids}.
+                pids = clear_pid_mapping(Pid, NewPids)}.
 
 store_conflict_add_entries(0, Entries, _) ->
     Entries;
@@ -3349,7 +3349,7 @@ store_conflict_f([Pid | V1AllPids],
                  #state{callbacks = Callbacks} = State) ->
     % for each external Pid, check the internal Pids within the same group
     Fpartition = fun(#cpg_data_pid{pid = P}) ->
-        if 
+        if
             P == Pid ->
                 true;
             true ->
@@ -3503,6 +3503,14 @@ member_died(Pid, Reason, #state{pids = Pids} = State) ->
             NewState#state{pids = dict:erase(Pid, NewPids)}
     end.
 
+clear_pid_mapping(Pid, PidM) ->
+    case dict:fetch(Pid, PidM) of
+        [] ->
+            dict:erase(Pid, PidM);
+        Pids when is_list(Pids) ->
+            PidM
+    end.
+
 whereis_name_random(1, [Pid]) ->
     Pid;
 whereis_name_random(N, L) ->
@@ -3542,4 +3550,3 @@ select([H | T], Output, F) ->
 
 random(N) ->
     quickrand:uniform(N).
-

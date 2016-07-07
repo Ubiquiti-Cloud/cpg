@@ -7,13 +7,13 @@
 %%% @end
 %%%
 %%% BSD LICENSE
-%%% 
+%%%
 %%% Copyright (c) 2013-2014, Michael Truog <mjtruog at gmail dot com>
 %%% All rights reserved.
-%%% 
+%%%
 %%% Redistribution and use in source and binary forms, with or without
 %%% modification, are permitted provided that the following conditions are met:
-%%% 
+%%%
 %%%     * Redistributions of source code must retain the above copyright
 %%%       notice, this list of conditions and the following disclaimer.
 %%%     * Redistributions in binary form must reproduce the above copyright
@@ -26,7 +26,7 @@
 %%%     * The name of the author may not be used to endorse or promote
 %%%       products derived from this software without specific prior
 %%%       written permission
-%%% 
+%%%
 %%% THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND
 %%% CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES,
 %%% INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
@@ -227,6 +227,17 @@ pid_age_2_test() ->
     ok = kill_pids([Pid1, Pid2, Pid3]),
     ok.
 
+join_leaves_remove_stale_reverse_mappings_test() ->
+    StartStateSize = byte_size(term_to_binary(sys:get_state(cpg_default_scope))),
+    Pid1 = erlang:spawn(fun busy_pid/0),
+    [begin
+         ok = cpg:join("GroupA", Pid1),
+         1 = cpg:join_count("GroupA", Pid1),
+         cpg:leave("GroupA", Pid1),
+         AfterLeaveSize = byte_size(term_to_binary(sys:get_state(cpg_default_scope))),
+         StartStateSize = AfterLeaveSize
+     end || _ <- lists:seq(1,100)].
+
 callbacks_test() ->
     F = fun(F1, L) ->
         receive
@@ -354,4 +365,3 @@ index(Item, [Item | _], I) ->
     I;
 index(Item, [_ | T], I) ->
     index(Item, T, I + 1).
-
