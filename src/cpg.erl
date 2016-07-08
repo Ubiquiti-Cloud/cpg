@@ -3489,7 +3489,10 @@ store(#state{groups = {DictI, ExternalGroupsData},
                              lists:umerge(V2, V1)
                          end, ExternalPids, Pids),
     State#state{groups = {DictI, NewGroupsData},
-                pids = NewPids}.
+                pids = NewPids};
+store(_, State) ->
+    ?LOG_INFO("store received mismatched state, ignoring", []),
+    State.
 
 member_died(Pid, Reason, #state{pids = Pids} = State) ->
     case dict:find(Pid, Pids) of
